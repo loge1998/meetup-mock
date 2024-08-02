@@ -22,4 +22,12 @@ class UserRepository {
         userStore[userRequest.userId] = user
         user
     }
+
+    fun getUserByUserId(userId: String): Either<CustomError, User> {
+        return userStore[userId].toOption().toEither { UserNotFoundError }
+    }
+
+    fun clearAll() {
+        userStore.clear()
+    }
 }

@@ -9,4 +9,8 @@ data class Conference(
     val startDatetime: Instant,
     val endDateTime: Instant,
     val availableSlots: Int
-)
+) {
+    fun isOverlappingConference(conference: Conference): Boolean {
+        return (this.endDateTime >= conference.startDatetime)
+    }
+}

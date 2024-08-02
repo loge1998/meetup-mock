@@ -23,4 +23,16 @@ class ConferenceRepository {
         conferenceStore[addConferenceRequest.name] = conference
         conference
     }
+
+    fun getConferenceByName(conferenceName: String): Either<CustomError, Conference> {
+        return conferenceStore[conferenceName].toOption().toEither { ConferenceNotFoundError }
+    }
+
+    fun putConference(conference: Conference) {
+        conferenceStore[conference.name] = conference
+    }
+
+    fun clearAll() {
+        conferenceStore.clear()
+    }
 }

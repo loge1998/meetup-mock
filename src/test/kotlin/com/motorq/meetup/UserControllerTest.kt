@@ -1,6 +1,5 @@
 package com.motorq.meetup
 
-import java.time.Instant
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
