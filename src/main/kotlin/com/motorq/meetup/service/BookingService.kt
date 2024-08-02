@@ -1,8 +1,20 @@
-package com.motorq.meetup
+package com.motorq.meetup.service
 
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import com.motorq.meetup.dto.BookingRequest
+import com.motorq.meetup.ConferenceStartedError
+import com.motorq.meetup.CustomError
+import com.motorq.meetup.ExistingBookingFoundError
+import com.motorq.meetup.NoSlotsAvailableError
+import com.motorq.meetup.OverlappingConferenceError
+import com.motorq.meetup.domain.Booking
+import com.motorq.meetup.domain.BookingStatus
+import com.motorq.meetup.domain.Conference
+import com.motorq.meetup.repositories.BookingRepository
+import com.motorq.meetup.repositories.ConferenceRepository
+import com.motorq.meetup.repositories.UserRepository
 import java.time.Instant
 import org.springframework.stereotype.Service
 

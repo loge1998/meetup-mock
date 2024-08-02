@@ -1,8 +1,15 @@
-package com.motorq.meetup
+package com.motorq.meetup.repositories
 
 import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.toOption
+import com.motorq.meetup.domain.Booking
+import com.motorq.meetup.BookingNotFoundError
+import com.motorq.meetup.domain.BookingStatus
+import com.motorq.meetup.domain.Conference
+import com.motorq.meetup.CustomError
+import com.motorq.meetup.dto.User
+import com.motorq.meetup.UserNotFoundError
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap

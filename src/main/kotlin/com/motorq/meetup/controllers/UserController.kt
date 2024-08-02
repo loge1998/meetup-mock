@@ -1,7 +1,10 @@
-package com.motorq.meetup
+package com.motorq.meetup.controllers
 
 import arrow.core.Either
-import org.springframework.beans.factory.annotation.Autowired
+import com.motorq.meetup.dto.AddUserRequest
+import com.motorq.meetup.CustomError
+import com.motorq.meetup.dto.User
+import com.motorq.meetup.repositories.UserRepository
 import org.springframework.web.bind.annotation.RestController
 
 @RestController

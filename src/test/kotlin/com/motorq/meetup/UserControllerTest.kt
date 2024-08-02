@@ -1,5 +1,7 @@
 package com.motorq.meetup
 
+import com.motorq.meetup.controllers.UserController
+import com.motorq.meetup.dto.AddUserRequest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

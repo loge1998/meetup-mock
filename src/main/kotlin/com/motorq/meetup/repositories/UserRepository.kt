@@ -1,9 +1,14 @@
-package com.motorq.meetup
+package com.motorq.meetup.repositories
 
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.toOption
+import com.motorq.meetup.dto.AddUserRequest
+import com.motorq.meetup.CustomError
+import com.motorq.meetup.dto.User
+import com.motorq.meetup.UserAlreadyExistError
+import com.motorq.meetup.UserNotFoundError
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import org.springframework.stereotype.Repository

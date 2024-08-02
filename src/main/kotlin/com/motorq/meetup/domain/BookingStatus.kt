@@ -1,4 +1,4 @@
-package com.motorq.meetup
+package com.motorq.meetup.domain
 
 enum class BookingStatus {
     CONFIRMED,

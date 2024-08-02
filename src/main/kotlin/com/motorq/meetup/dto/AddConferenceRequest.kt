@@ -1,5 +1,6 @@
-package com.motorq.meetup
+package com.motorq.meetup.dto
 
+import com.motorq.meetup.domain.Conference
 import java.time.Instant
 
 data class AddConferenceRequest(

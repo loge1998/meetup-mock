@@ -1,5 +1,12 @@
 package com.motorq.meetup
 
+import com.motorq.meetup.controllers.ConferenceController
+import com.motorq.meetup.dto.AddConferenceRequest
+import com.motorq.meetup.dto.AddUserRequest
+import com.motorq.meetup.dto.BookingRequest
+import com.motorq.meetup.repositories.BookingRepository
+import com.motorq.meetup.repositories.ConferenceRepository
+import com.motorq.meetup.repositories.UserRepository
 import java.time.Instant
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

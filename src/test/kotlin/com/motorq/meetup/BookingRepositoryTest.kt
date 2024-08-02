@@ -1,6 +1,10 @@
 package com.motorq.meetup
 
 import arrow.core.right
+import com.motorq.meetup.domain.BookingStatus
+import com.motorq.meetup.domain.Conference
+import com.motorq.meetup.dto.User
+import com.motorq.meetup.repositories.BookingRepository
 import java.time.Instant
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
