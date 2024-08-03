@@ -27,7 +27,7 @@ class BookingRepositoryTest {
         )
         val bookings = bookingRepository.addBooking(user, conference, BookingStatus.CONFIRMED)
         assertTrue(bookings.isRight())
-        bookingRepository.getBookingsForUserId(userId).onRight {
+        bookingRepository.getBookingsForUserId(userId).let {
             assertEquals(1, it.size)
             assertEquals(it.first().right(), bookings)
         }

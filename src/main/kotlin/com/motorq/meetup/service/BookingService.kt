@@ -28,7 +28,7 @@ class BookingService(
         val conference = conferenceRepository.getConferenceByName(bookingRequest.conferenceName).bind()
         val user = userRepository.getUserByUserId(bookingRequest.userId).bind()
         validateBookingRequest(conference).bind()
-        val userBookings = bookingRepository.getBookingsForUserId(user.userId).bind()
+        val userBookings = bookingRepository.getBookingsForUserId(user.userId)
         checkIfUserHasPreviousBooking(userBookings, conference).bind()
         checkIfUserHasAnyOverlappingConference(userBookings, conference).bind()
         val bookings = bookingRepository.addBooking(user, conference, BookingStatus.CONFIRMED).bind()

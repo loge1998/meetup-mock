@@ -37,8 +37,8 @@ class BookingRepository {
         booking
     }
 
-    fun getBookingsForUserId(userId: String): Either<CustomError, Set<Booking>> {
-        return userBookings[userId].toOption().toEither { UserNotFoundError }
+    fun getBookingsForUserId(userId: String): Set<Booking> {
+        return userBookings[userId] ?: setOf()
     }
 
     fun getBookingsById(bookingId: String): Either<CustomError, Booking> {
