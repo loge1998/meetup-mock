@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: meetup
+  datasource:
+    url: jdbc:tc:postgresql:13.11://ignored:1111/test-db
+    username: postgres
+    password: postgres
+  liquibase:
+    enabled: true
+    change-log: 'classpath:db/changelog-root.yaml'

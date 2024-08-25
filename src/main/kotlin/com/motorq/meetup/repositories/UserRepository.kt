@@ -21,7 +21,7 @@ class UserRepository {
         val existingUser = userStore[userRequest.userId].toOption()
         if(existingUser.isSome())
         {
-            return UserAlreadyExistError.left()
+            raise(UserAlreadyExistError)
         }
         val user = userRequest.toUser()
         userStore[userRequest.userId] = user

@@ -26,6 +26,13 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	implementation("org.jetbrains.exposed:exposed-spring-boot-starter:0.49.0")
+	implementation("org.jetbrains.exposed:exposed-java-time:0.49.0")
+	implementation("org.liquibase:liquibase-core:4.27.0")
+	implementation("org.postgresql:postgresql:42.7.3")
+	testImplementation("org.testcontainers:testcontainers:1.19.7")
+	testImplementation("org.testcontainers:junit-jupiter:1.19.7")
+	testImplementation("org.testcontainers:postgresql:1.19.7")
 }
 
 kotlin {

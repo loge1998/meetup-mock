@@ -22,7 +22,7 @@ class ConferenceRepository {
         val existingConference = conferenceStore[addConferenceRequest.name].toOption()
         if(existingConference.isSome())
         {
-            return ConferenceAlreadyExistError.left()
+            raise(ConferenceAlreadyExistError)
         }
         val conference = addConferenceRequest.toConference()
         conferenceStore[addConferenceRequest.name] = conference
