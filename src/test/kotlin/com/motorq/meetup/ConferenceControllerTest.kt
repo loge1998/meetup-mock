@@ -5,15 +5,22 @@ import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.dto.AddConferenceRequest
 import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.dto.BookingRequest
+import com.motorq.meetup.entity.WaitlistingTable
 import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.repositories.UserRepository
+import com.motorq.meetup.repositories.WaitlistingRepository
+import io.kotest.assertions.arrow.core.shouldBeRight
+import io.kotest.assertions.arrow.core.shouldBeSome
 import java.time.Instant
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @SpringBootTest
@@ -21,14 +28,18 @@ class ConferenceControllerTest(
     @Autowired val conferenceController: ConferenceController,
     @Autowired val conferenceRepository: ConferenceRepository,
     @Autowired val userRepository: UserRepository,
-    @Autowired val bookingRepository: BookingRepository
+    @Autowired val bookingRepository: BookingRepository,
+    @Autowired val waitlistingRepository: WaitlistingRepository
 ) {
 
     @BeforeEach
     fun setup() {
-        conferenceRepository.clearAll()
-        userRepository.clearAll()
-        bookingRepository.clearAll()
+        transaction {
+            conferenceRepository.clearAll()
+            userRepository.clearAll()
+            bookingRepository.clearAll()
+            WaitlistingTable.deleteAll()
+        }
     }
 
     @Test
@@ -124,7 +135,7 @@ class ConferenceControllerTest(
     }
 
     @Test
-    fun shouldThrowNoSlotsAvailableErrorWhenTheConferenceHasNoExtraSlotsLeft() {
+    fun shouldReturnBookingWithWaitlistingStatusWhenTheConferenceHasNoExtraSlotsLeft() {
         val conferenceName = "test conference name"
         val userId = "random uuid"
         val conferenceRequest = AddConferenceRequest(
@@ -142,12 +153,20 @@ class ConferenceControllerTest(
         conferenceController.addConference(conferenceRequest)
         userRepository.addUser(userRequest)
 
-        val response = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName))
+        val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+        val conference = conferenceRepository.getConferenceByName(conferenceName).shouldBeRight()
+        val waitlistRecord =
+            waitlistingRepository.getTheOldestWaitlistingRecordForConference(conferenceName).shouldBeSome()
 
-        assertTrue { response.isLeft() }
-        response.onLeft {
-            assertEquals(NoSlotsAvailableError, it)
-        }
+        assertEquals(0, conference.availableSlots)
+        assertEquals(conferenceRequest.toConference(), booking.conference)
+        assertEquals(userRequest.toUser(), booking.user)
+        assertEquals(BookingStatus.WAITLISTED, booking.status)
+
+        assertEquals(booking.id, waitlistRecord.bookingId)
+        assertFalse { waitlistRecord.isRequestSent }
+        assertEquals(conferenceName, waitlistRecord.conferenceName)
+        assertEquals(userId, waitlistRecord.userId)
     }
 
     @Test
@@ -243,7 +262,7 @@ class ConferenceControllerTest(
         response.onRight {
             assertEquals(conferenceRequest.toConference(), it.conference)
             assertEquals(userRequest.toUser(), it.user)
-            assertEquals(BookingStatus.CONFIRMED,it.status)
+            assertEquals(BookingStatus.CONFIRMED, it.status)
         }
         conferenceRepository.getConferenceByName(conferenceName).onRight {
             assertEquals(29, it.availableSlots)

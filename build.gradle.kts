@@ -30,9 +30,11 @@ dependencies {
 	implementation("org.jetbrains.exposed:exposed-java-time:0.49.0")
 	implementation("org.liquibase:liquibase-core:4.27.0")
 	implementation("org.postgresql:postgresql:42.7.3")
+	implementation("io.kotest.extensions:kotest-assertions-arrow:1.4.0")
 	testImplementation("org.testcontainers:testcontainers:1.19.7")
 	testImplementation("org.testcontainers:junit-jupiter:1.19.7")
 	testImplementation("org.testcontainers:postgresql:1.19.7")
+
 }
 
 kotlin {

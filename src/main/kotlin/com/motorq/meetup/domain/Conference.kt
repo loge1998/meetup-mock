@@ -13,4 +13,12 @@ data class Conference(
     fun isOverlappingConference(conference: Conference): Boolean {
         return (this.endDateTime >= conference.startDatetime)
     }
+
+    fun isSlotAvailable(): Boolean {
+        return availableSlots > 0
+    }
+
+    fun isStillOpen(): Boolean {
+        return (startDatetime.isAfter(Instant.now()))
+    }
 }
