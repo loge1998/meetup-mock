@@ -5,6 +5,7 @@ import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.dto.AddConferenceRequest
 import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.dto.BookingRequest
+import com.motorq.meetup.entity.UserTable
 import com.motorq.meetup.entity.WaitlistingTable
 import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository
@@ -36,7 +37,7 @@ class ConferenceControllerTest(
     fun setup() {
         transaction {
             conferenceRepository.clearAll()
-            userRepository.clearAll()
+            UserTable.deleteAll()
             bookingRepository.clearAll()
             WaitlistingTable.deleteAll()
         }
