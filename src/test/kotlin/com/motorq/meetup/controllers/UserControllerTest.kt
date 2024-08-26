@@ -1,6 +1,6 @@
-package com.motorq.meetup
+package com.motorq.meetup.controllers
 
-import com.motorq.meetup.controllers.UserController
+import com.motorq.meetup.UserAlreadyExistError
 import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.entity.UserTable
 import common.TestContainerRunner

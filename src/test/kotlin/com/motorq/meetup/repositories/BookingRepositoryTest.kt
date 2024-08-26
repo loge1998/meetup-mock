@@ -1,10 +1,9 @@
-package com.motorq.meetup
+package com.motorq.meetup.repositories
 
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
 import com.motorq.meetup.domain.User
 import com.motorq.meetup.entity.BookingsTable
-import com.motorq.meetup.repositories.BookingRepository
 import common.TestContainerRunner
 import io.kotest.assertions.arrow.core.shouldBeRight
 import java.time.Instant

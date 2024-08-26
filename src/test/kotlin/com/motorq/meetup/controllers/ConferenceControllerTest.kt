@@ -1,6 +1,11 @@
-package com.motorq.meetup
+package com.motorq.meetup.controllers
 
-import com.motorq.meetup.controllers.ConferenceController
+import com.motorq.meetup.ConferenceAlreadyExistError
+import com.motorq.meetup.ConferenceNotFoundError
+import com.motorq.meetup.ConferenceStartedError
+import com.motorq.meetup.ExistingBookingFoundError
+import com.motorq.meetup.OverlappingConferenceError
+import com.motorq.meetup.UserNotFoundError
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.dto.AddConferenceRequest
 import com.motorq.meetup.dto.AddUserRequest
