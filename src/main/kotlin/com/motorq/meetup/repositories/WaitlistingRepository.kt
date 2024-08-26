@@ -1,10 +1,12 @@
 package com.motorq.meetup.repositories
 
 import arrow.core.Option
+import arrow.core.flatMap
 import arrow.core.toOption
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.WaitlistRecord
 import com.motorq.meetup.entity.WaitlistingTable
+import com.motorq.meetup.wrapWithTryCatch
 import java.time.Instant
 import java.util.UUID
 import org.jetbrains.exposed.sql.ResultRow
@@ -12,6 +14,7 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
@@ -29,7 +32,7 @@ class WaitlistingRepository {
             .map{it.toWaitlistRecord()}
     }
 
-    fun addWaitlistEntry(booking: Booking) {
+    fun addWaitlistEntry(booking: Booking) = wrapWithTryCatch({
         WaitlistingTable.insert {
             it[bookingId] = booking.id
             it[userId] = booking.userId
@@ -38,6 +41,11 @@ class WaitlistingRepository {
             it[isRequestSent] = false
             it[slotAvailabilityEndTime] = null
         }
+    }, logger)
+
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(WaitlistingRepository::class.java)
     }
 }
 

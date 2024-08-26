@@ -58,14 +58,13 @@ class BookingService(
     private fun addUserToWaitlist(user: User, conference: Conference) = either {
         transaction {
             val booking = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).bind()
-            waitlistingRepository.addWaitlistEntry(booking)
+            waitlistingRepository.addWaitlistEntry(booking).onLeft { rollback() }.bind()
             booking
         }
     }
 
-    private fun decrementAvailableSlot(conference: Conference) {
+    private fun decrementAvailableSlot(conference: Conference) =
         conferenceRepository.decrementConferenceAvailableSlot(conference.name)
-    }
 
     private fun checkIfValidRequest(
         conference: Conference,
