@@ -19,6 +19,7 @@ import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -65,6 +66,12 @@ class BookingRepository {
 
     fun deleteById(bookingId: UUID) = wrapWithTryCatch({
         BookingsTable.deleteWhere { id eq bookingId }
+    }, logger)
+
+    fun updateStatus(bookingId: UUID, bookingStatus: BookingStatus) = wrapWithTryCatch({
+       BookingsTable.update ({BookingsTable.id eq bookingId}) {
+           it[status] = bookingStatus
+       }
     }, logger)
 
     companion object {

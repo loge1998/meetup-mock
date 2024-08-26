@@ -33,4 +33,8 @@ class ConferenceController(
     fun cancelBooking(bookingId: UUID): Either<CustomError, Unit> {
         return bookingService.cancelBooking(bookingId)
     }
+
+    fun confirmBooking(bookingId: UUID): Either<CustomError, List<Int>> {
+        return bookingService.confirmBooking(bookingId)
+    }
 }

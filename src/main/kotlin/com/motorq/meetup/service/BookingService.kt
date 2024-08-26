@@ -12,6 +12,7 @@ import com.motorq.meetup.ConferenceStartedError
 import com.motorq.meetup.CustomError
 import com.motorq.meetup.ExistingBookingFoundError
 import com.motorq.meetup.OverlappingConferenceError
+import com.motorq.meetup.WrongRequestError
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
@@ -53,7 +54,7 @@ class BookingService(
 
     fun cancelBooking(bookingId: UUID): Either<CustomError, Unit> = either {
         val booking = bookingRepository.getBookingsById(bookingId).bind()
-        bookingRepository.deleteById(bookingId).bind()
+        bookingRepository.updateStatus(bookingId, BookingStatus.CANCELLED).bind()
         waitlistingRepository.deleteByBookingId(bookingId).bind()
         if(booking.status == BookingStatus.CONFIRMED) {
             notifyNextWaitListedUser(booking.conferenceName)
@@ -147,5 +148,19 @@ class BookingService(
             waitlistingRepository.resetWaitListRecord(waitlistRecord.bookingId)
             notifyNextWaitListedUser(waitlistRecord.conferenceName)
         }
+    }
+
+    fun confirmBooking(bookingId: UUID) = either {
+        val booking = bookingRepository.getBookingsById(bookingId).bind()
+        ensure(booking.status == BookingStatus.WAITLISTED) {
+            raise(WrongRequestError("Provided booking is not in waitlisting"))
+        }
+        bookingRepository.updateStatus(bookingId, BookingStatus.CONFIRMED).bind()
+        removeUserFromOverlappingConferenceWaitListQueue(booking.userId, booking.conferenceName).bind()
+    }
+
+    private fun removeUserFromOverlappingConferenceWaitListQueue(userId: String, conferenceName: String) = either {
+        val overlappingConferences = conferenceRepository.getAllOverlappingConference(conferenceName).bind()
+        overlappingConferences.traverse { waitlistingRepository.deleteByUserIdAndConferenceName(userId, it) }.bind()
     }
 }

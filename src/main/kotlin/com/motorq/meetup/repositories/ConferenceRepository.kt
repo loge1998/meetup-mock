@@ -16,7 +16,10 @@ import com.motorq.meetup.filterOrError
 import com.motorq.meetup.wrapWithTryCatch
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.orWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
@@ -88,6 +91,20 @@ class ConferenceRepository {
         }, logger).flatMap {
             it.filterOrError({ it > 0 }, ConferenceNotFoundError)
         }
+
+    fun getAllOverlappingConference(conferenceName: String): Either<CustomError, List<String>> = wrapWithTryCatch({
+        val conference = ConferenceTable.select(ConferenceTable.startDateTime, ConferenceTable.endDateTime)
+            .where { ConferenceTable.name eq conferenceName }.single()
+
+        val startDateTime = conference[ConferenceTable.startDateTime]
+        val endDateTime = conference[ConferenceTable.endDateTime]
+
+        ConferenceTable.select(ConferenceTable.name)
+            .where {ConferenceTable.startDateTime.between(startDateTime, endDateTime)}
+            .orWhere { ConferenceTable.endDateTime.between(startDateTime, endDateTime) }
+            .orWhere { ConferenceTable.startDateTime.lessEq(startDateTime).and(ConferenceTable.endDateTime.greaterEq(endDateTime)) }
+            .map { it[ConferenceTable.name] }
+    }, logger)
 
     companion object {
         private val logger = LoggerFactory.getLogger(ConferenceRepository::class.java)

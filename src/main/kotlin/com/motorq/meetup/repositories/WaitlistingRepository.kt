@@ -14,6 +14,7 @@ import java.util.UUID
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
@@ -66,6 +67,10 @@ class WaitlistingRepository {
             it[isRequestSent] = false
             it[slotAvailabilityEndTime] = null
         }
+    }, logger)
+
+    fun deleteByUserIdAndConferenceName(userId: String, conferenceName: String) = wrapWithTryCatch({
+        WaitlistingTable.deleteWhere { (this.userId eq userId) and (this.conferenceName eq conferenceName)}
     }, logger)
 
     companion object {

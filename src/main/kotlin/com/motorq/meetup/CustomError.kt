@@ -28,6 +28,7 @@ data object ConferenceStartedError: CustomError("Conference has already started!
 data object ExistingBookingFoundError: CustomError("User has an existing booking for the conference!")
 data object OverlappingConferenceError: CustomError("User has an existing overlapping bookings!")
 data object DatabaseOperationFailedError : CustomError("DB operation failed!")
+data class WrongRequestError(val msg: String) : CustomError(msg)
 
 fun <T> wrapWithTryCatch(function1: () -> T, log: Logger): Either<CustomError, T> = either {
     try {
