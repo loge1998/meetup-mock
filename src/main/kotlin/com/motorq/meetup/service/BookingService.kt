@@ -13,7 +13,7 @@ import com.motorq.meetup.OverlappingConferenceError
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
-import com.motorq.meetup.dto.User
+import com.motorq.meetup.domain.User
 import com.motorq.meetup.ensureNot
 import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository

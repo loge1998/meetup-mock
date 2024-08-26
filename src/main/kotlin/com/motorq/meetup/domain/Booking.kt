@@ -1,6 +1,5 @@
 package com.motorq.meetup.domain
 
-import com.motorq.meetup.dto.User
 import java.time.Instant
 import java.util.UUID
 

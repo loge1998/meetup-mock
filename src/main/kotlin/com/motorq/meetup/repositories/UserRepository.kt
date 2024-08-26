@@ -2,18 +2,15 @@ package com.motorq.meetup.repositories
 
 import arrow.core.Either
 import arrow.core.flatMap
-import arrow.core.left
 import arrow.core.raise.either
 import arrow.core.toOption
 import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.CustomError
-import com.motorq.meetup.dto.User
+import com.motorq.meetup.domain.User
 import com.motorq.meetup.UserAlreadyExistError
 import com.motorq.meetup.UserNotFoundError
 import com.motorq.meetup.entity.UserTable
 import com.motorq.meetup.wrapWithTryCatch
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll

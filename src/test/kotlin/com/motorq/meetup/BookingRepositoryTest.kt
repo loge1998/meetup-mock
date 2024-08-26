@@ -2,7 +2,7 @@ package com.motorq.meetup
 
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
-import com.motorq.meetup.dto.User
+import com.motorq.meetup.domain.User
 import com.motorq.meetup.entity.BookingsTable
 import com.motorq.meetup.repositories.BookingRepository
 import common.TestContainerRunner

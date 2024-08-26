@@ -1,22 +1,15 @@
 package com.motorq.meetup.repositories
 
 import arrow.core.Either
-import arrow.core.flatMap
-import arrow.core.raise.either
-import arrow.core.toOption
 import com.motorq.meetup.domain.Booking
-import com.motorq.meetup.BookingNotFoundError
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
 import com.motorq.meetup.CustomError
-import com.motorq.meetup.dto.User
-import com.motorq.meetup.UserNotFoundError
+import com.motorq.meetup.domain.User
 import com.motorq.meetup.entity.BookingsTable
 import com.motorq.meetup.wrapWithTryCatch
 import java.time.Instant
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll

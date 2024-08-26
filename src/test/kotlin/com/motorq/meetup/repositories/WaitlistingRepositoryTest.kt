@@ -3,7 +3,7 @@ package com.motorq.meetup.repositories
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
-import com.motorq.meetup.dto.User
+import com.motorq.meetup.domain.User
 import com.motorq.meetup.entity.WaitlistingTable
 import java.time.Instant
 import java.util.UUID
