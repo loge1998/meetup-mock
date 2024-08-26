@@ -9,4 +9,6 @@ data class Booking(
     val userId: String,
     val status: BookingStatus,
     val timestamp: Instant
-)
+) {
+    fun isInWaitList() = (status == BookingStatus.WAITLISTED)
+}

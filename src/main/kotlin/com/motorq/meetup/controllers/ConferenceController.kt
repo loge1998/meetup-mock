@@ -8,6 +8,8 @@ import com.motorq.meetup.service.BookingService
 import com.motorq.meetup.domain.Conference
 import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.CustomError
+import com.motorq.meetup.dto.BookingStatusResponse
+import java.util.*
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -22,5 +24,9 @@ class ConferenceController(
 
     fun bookConferenceTicket(bookingRequest: BookingRequest): Either<CustomError, Booking> {
         return bookingService.bookSlot(bookingRequest)
+    }
+
+    fun getBookingStatus(bookingId: UUID): Either<CustomError, BookingStatusResponse> {
+        return bookingService.getBookingStatus(bookingId)
     }
 }

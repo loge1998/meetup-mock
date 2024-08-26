@@ -268,4 +268,60 @@ class ConferenceControllerTest(
             assertEquals(29, it.availableSlots)
         }
     }
+
+    @Test
+    fun shouldReturnBookingStatusForAConfirmedBooking() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            30
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+        conferenceController.addConference(conferenceRequest)
+        userRepository.addUser(userRequest)
+
+        val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+        val bookingStatusResponse = conferenceController.getBookingStatus(booking.id).shouldBeRight()
+
+        assertEquals(booking.id, bookingStatusResponse.bookingId)
+        assertEquals(BookingStatus.CONFIRMED, bookingStatusResponse.bookingStatus)
+        assertEquals(null, bookingStatusResponse.isSlotAvailable)
+        assertEquals(null, bookingStatusResponse.confirmationEndTime)
+    }
+
+    @Test
+    fun shouldReturnBookingStatusForAWaitListedBooking() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            0
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+        conferenceController.addConference(conferenceRequest)
+        userRepository.addUser(userRequest)
+
+        val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+        val bookingStatusResponse = conferenceController.getBookingStatus(booking.id).shouldBeRight()
+
+        assertEquals(booking.id, bookingStatusResponse.bookingId)
+        assertEquals(BookingStatus.WAITLISTED, bookingStatusResponse.bookingStatus)
+        assertEquals(false, bookingStatusResponse.isSlotAvailable)
+        assertEquals(null, bookingStatusResponse.confirmationEndTime)
+    }
 }

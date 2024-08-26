@@ -1,6 +1,9 @@
 package com.motorq.meetup.repositories
 
 import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.toOption
+import com.motorq.meetup.BookingNotFoundError
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
@@ -48,6 +51,14 @@ class BookingRepository {
             .map { it.toBooking() }
             .toSet()
     }, logger)
+
+    fun getBookingsById(bookingId: UUID) = wrapWithTryCatch({
+        BookingsTable.selectAll()
+            .where{BookingsTable.id eq bookingId}
+            .firstOrNull()
+            .toOption()
+            .map { it.toBooking() }
+    }, logger).flatMap { it.toEither { BookingNotFoundError } }
 
     companion object {
         private val logger = LoggerFactory.getLogger(BookingRepository::class.java)

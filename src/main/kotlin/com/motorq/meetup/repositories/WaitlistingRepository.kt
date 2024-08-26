@@ -3,6 +3,7 @@ package com.motorq.meetup.repositories
 import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.toOption
+import com.motorq.meetup.BookingNotFoundError
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.WaitlistRecord
 import com.motorq.meetup.entity.WaitlistingTable
@@ -25,11 +26,11 @@ class WaitlistingRepository {
     fun getTheOldestWaitlistingRecordForConference(conferenceName: String): Option<WaitlistRecord> {
         return WaitlistingTable.selectAll()
             .where { WaitlistingTable.conferenceName eq conferenceName }
-            .andWhere { WaitlistingTable.isRequestSent neq true}
+            .andWhere { WaitlistingTable.isRequestSent neq true }
             .orderBy(WaitlistingTable.timestamp, SortOrder.ASC)
             .firstOrNull()
             .toOption()
-            .map{it.toWaitlistRecord()}
+            .map { it.toWaitlistRecord() }
     }
 
     fun addWaitlistEntry(booking: Booking) = wrapWithTryCatch({
@@ -43,8 +44,15 @@ class WaitlistingRepository {
         }
     }, logger)
 
-    companion object
-    {
+    fun getWaitlistingRecordByBookingId(bookingId: UUID) = wrapWithTryCatch({
+        WaitlistingTable.selectAll()
+            .where { WaitlistingTable.bookingId eq bookingId }
+            .firstOrNull()
+            .toOption()
+            .map { it.toWaitlistRecord() }
+    }, logger).flatMap { it.toEither { BookingNotFoundError } }
+
+    companion object {
         private val logger = LoggerFactory.getLogger(WaitlistingRepository::class.java)
     }
 }
