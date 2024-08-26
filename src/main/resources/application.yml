@@ -38,3 +38,15 @@ spring:
     change-log: 'classpath:db/changelog-root.yaml'
 server:
   port: 8082
+
+org:
+  jobrunr:
+    database:
+      skip-create: false
+      table-prefix: _job_runr
+    dashboard:
+      enabled: true
+    port: 8000
+    background-job-server:
+      enabled: true
+      poll-interval-in-seconds: 5

@@ -29,4 +29,8 @@ class ConferenceController(
     fun getBookingStatus(bookingId: UUID): Either<CustomError, BookingStatusResponse> {
         return bookingService.getBookingStatus(bookingId)
     }
+
+    fun cancelBooking(bookingId: UUID): Either<CustomError, Unit> {
+        return bookingService.cancelBooking(bookingId)
+    }
 }

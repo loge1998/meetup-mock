@@ -12,6 +12,7 @@ import com.motorq.meetup.catchUniqueConstraintViolation
 import com.motorq.meetup.domain.Conference
 import com.motorq.meetup.dto.AddConferenceRequest
 import com.motorq.meetup.entity.ConferenceTable
+import com.motorq.meetup.filterOrError
 import com.motorq.meetup.wrapWithTryCatch
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
@@ -75,6 +76,17 @@ class ConferenceRepository {
                     else -> it
                 }
             }
+        }
+
+    fun incrementConferenceAvailableSlot(conferenceName: String): Either<CustomError, Int> =
+        wrapWithTryCatch({
+            ConferenceTable.update({ ConferenceTable.name eq conferenceName }) {
+                with(SqlExpressionBuilder) {
+                    it.update(availableSlots, availableSlots + 1)
+                }
+            }
+        }, logger).flatMap {
+            it.filterOrError({ it > 0 }, ConferenceNotFoundError)
         }
 
     companion object {

@@ -14,6 +14,9 @@ import com.motorq.meetup.wrapWithTryCatch
 import java.time.Instant
 import java.util.*
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.slf4j.LoggerFactory
@@ -59,6 +62,10 @@ class BookingRepository {
             .toOption()
             .map { it.toBooking() }
     }, logger).flatMap { it.toEither { BookingNotFoundError } }
+
+    fun deleteById(bookingId: UUID) = wrapWithTryCatch({
+        BookingsTable.deleteWhere { id eq bookingId }
+    }, logger)
 
     companion object {
         private val logger = LoggerFactory.getLogger(BookingRepository::class.java)

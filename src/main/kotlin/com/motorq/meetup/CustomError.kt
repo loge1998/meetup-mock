@@ -58,3 +58,7 @@ fun <T> catchUniqueConstraintViolation(function1: () -> T, error: CustomError,  
 fun <Error> Raise<Error>.ensureNot(condition: Boolean, raise: () -> Error) {
     return if (!condition) Unit else raise(raise())
 }
+
+fun <T : Any> T.filterOrError(condition: () -> Boolean, error: CustomError): Either<CustomError, T> = either {
+    if (condition()) this@filterOrError else raise(error)
+}

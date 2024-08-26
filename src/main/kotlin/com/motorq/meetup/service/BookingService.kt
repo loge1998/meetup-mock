@@ -2,6 +2,7 @@ package com.motorq.meetup.service
 
 import arrow.core.Either
 import arrow.core.flatMap
+import arrow.core.getOrElse
 import arrow.core.raise.either
 import arrow.core.raise.ensure
 import arrow.core.right
@@ -15,14 +16,18 @@ import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
 import com.motorq.meetup.domain.User
+import com.motorq.meetup.domain.WaitlistRecord
 import com.motorq.meetup.dto.BookingStatusResponse
 import com.motorq.meetup.ensureNot
 import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.repositories.UserRepository
 import com.motorq.meetup.repositories.WaitlistingRepository
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jobrunr.scheduling.BackgroundJob
 import org.springframework.stereotype.Service
 
 @Service
@@ -46,33 +51,14 @@ class BookingService(
             .flatMap {enrichWithWaitListingDetails(it)}
     }
 
-    private fun bookSlotBasedOnAvailability(
-        user: User,
-        conference: Conference
-    ): Either<CustomError, Booking> {
-        return when (conference.isSlotAvailable()) {
-            true -> handleSuccessfulBooking(user, conference)
-            false -> addUserToWaitlist(user, conference)
+    fun cancelBooking(bookingId: UUID): Either<CustomError, Unit> = either {
+        val booking = bookingRepository.getBookingsById(bookingId).bind()
+        bookingRepository.deleteById(bookingId).bind()
+        waitlistingRepository.deleteByBookingId(bookingId).bind()
+        if(booking.status == BookingStatus.CONFIRMED) {
+            notifyNextWaitListedUser(booking.conferenceName)
         }
     }
-
-    private fun handleSuccessfulBooking(user: User, conference: Conference) = either {
-        transaction {
-            decrementAvailableSlot(conference)
-            bookingRepository.addBooking(user, conference, BookingStatus.CONFIRMED).onLeft { rollback() }.bind()
-        }
-    }
-
-    private fun addUserToWaitlist(user: User, conference: Conference) = either {
-        transaction {
-            val booking = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).bind()
-            waitlistingRepository.addWaitlistEntry(booking).onLeft { rollback() }.bind()
-            booking
-        }
-    }
-
-    private fun decrementAvailableSlot(conference: Conference) =
-        conferenceRepository.decrementConferenceAvailableSlot(conference.name)
 
     private fun checkIfValidRequest(
         conference: Conference,
@@ -109,6 +95,34 @@ class BookingService(
             .flatMap { either { ensureNot(it) { raise(OverlappingConferenceError) } } }
     }
 
+    private fun bookSlotBasedOnAvailability(
+        user: User,
+        conference: Conference
+    ): Either<CustomError, Booking> {
+        return when (conference.isSlotAvailable()) {
+            true -> handleSuccessfulBooking(user, conference)
+            false -> addUserToWaitlist(user, conference)
+        }
+    }
+
+    private fun handleSuccessfulBooking(user: User, conference: Conference) = either {
+        transaction {
+            decrementAvailableSlot(conference)
+            bookingRepository.addBooking(user, conference, BookingStatus.CONFIRMED).onLeft { rollback() }.bind()
+        }
+    }
+
+    private fun addUserToWaitlist(user: User, conference: Conference) = either {
+        transaction {
+            val booking = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).bind()
+            waitlistingRepository.addWaitlistEntry(booking).onLeft { rollback() }.bind()
+            booking
+        }
+    }
+
+    private fun decrementAvailableSlot(conference: Conference) =
+        conferenceRepository.decrementConferenceAvailableSlot(conference.name)
+
     private fun enrichWithWaitListingDetails(booking: Booking): Either<CustomError, BookingStatusResponse> {
         if (booking.isInWaitList())
         {
@@ -116,5 +130,22 @@ class BookingService(
                 .map { BookingStatusResponse(booking.id, booking.status, it.isRequestSent, it.slotAvailabilityEndTime)}
         }
         return BookingStatusResponse(booking.id, booking.status, null, null).right()
+    }
+
+    private fun notifyNextWaitListedUser(conferenceName: String) {
+        waitlistingRepository.getTheOldestWaitlistingRecordForConference(conferenceName)
+            .map {
+                // notify the user about the vacancy through some medium. (Out of scope)
+                BackgroundJob.schedule(Instant.now().plus(1, ChronoUnit.HOURS)) { checkForAcceptanceOfWaitList(it) }
+            }
+            .getOrElse { conferenceRepository.incrementConferenceAvailableSlot(conferenceName) }
+    }
+
+    private fun checkForAcceptanceOfWaitList(waitlistRecord: WaitlistRecord) = either {
+        val booking = bookingRepository.getBookingsById(waitlistRecord.bookingId).bind()
+        if(booking.status != BookingStatus.CONFIRMED) {
+            waitlistingRepository.resetWaitListRecord(waitlistRecord.bookingId)
+            notifyNextWaitListedUser(waitlistRecord.conferenceName)
+        }
     }
 }
