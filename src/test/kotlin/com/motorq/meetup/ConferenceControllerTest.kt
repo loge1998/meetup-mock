@@ -6,6 +6,7 @@ import com.motorq.meetup.dto.AddConferenceRequest
 import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.dto.BookingRequest
 import com.motorq.meetup.entity.BookingsTable
+import com.motorq.meetup.entity.ConferenceTable
 import com.motorq.meetup.entity.UserTable
 import com.motorq.meetup.entity.WaitlistingTable
 import com.motorq.meetup.repositories.BookingRepository
@@ -38,7 +39,7 @@ class ConferenceControllerTest(
     @BeforeEach
     fun setup() {
         transaction {
-            conferenceRepository.clearAll()
+            ConferenceTable.deleteAll()
             UserTable.deleteAll()
             BookingsTable.deleteAll()
             WaitlistingTable.deleteAll()
@@ -233,7 +234,8 @@ class ConferenceControllerTest(
 
         bookingRepository.addBooking(userRequest.toUser(), conferenceRequest.toConference(), BookingStatus.CONFIRMED)
 
-        conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeLeft(OverlappingConferenceError)
+        conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName))
+            .shouldBeLeft(OverlappingConferenceError)
     }
 
     @Test

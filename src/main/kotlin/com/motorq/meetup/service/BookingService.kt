@@ -19,6 +19,7 @@ import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.repositories.UserRepository
 import com.motorq.meetup.repositories.WaitlistingRepository
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.springframework.stereotype.Service
 
 @Service
@@ -48,20 +49,22 @@ class BookingService(
     }
 
     private fun handleSuccessfulBooking(user: User, conference: Conference) = either {
-        val booking = bookingRepository.addBooking(user, conference, BookingStatus.CONFIRMED).bind()
-        decrementAvailableSlot(conference)
-        booking
+        transaction {
+            decrementAvailableSlot(conference)
+            bookingRepository.addBooking(user, conference, BookingStatus.CONFIRMED).onLeft { rollback() }.bind()
+        }
     }
 
     private fun addUserToWaitlist(user: User, conference: Conference) = either {
-        val booking = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).bind()
-        waitlistingRepository.addWaitlistEntry(booking)
-        booking
+        transaction {
+            val booking = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).bind()
+            waitlistingRepository.addWaitlistEntry(booking)
+            booking
+        }
     }
 
     private fun decrementAvailableSlot(conference: Conference) {
-        val newConference = conference.copy(availableSlots = conference.availableSlots - 1)
-        conferenceRepository.putConference(newConference)
+        conferenceRepository.decrementConferenceAvailableSlot(conference.name)
     }
 
     private fun checkIfValidRequest(

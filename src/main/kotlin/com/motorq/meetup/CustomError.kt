@@ -4,6 +4,15 @@ import arrow.core.Either
 import arrow.core.raise.Raise
 import arrow.core.raise.either
 import java.sql.SQLException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.sql.Transaction
+import org.jetbrains.exposed.sql.transactions.TransactionManager
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.sql.transactions.experimental.withSuspendTransaction
+import org.jetbrains.exposed.sql.transactions.transaction
+import org.postgresql.util.PSQLException
+import org.postgresql.util.PSQLState
 import org.slf4j.Logger
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -24,6 +33,23 @@ fun <T> wrapWithTryCatch(function1: () -> T, log: Logger): Either<CustomError, T
     try {
         function1()
     } catch (ex: SQLException) {
+        log.error(ex.message)
+        raise(DatabaseOperationFailedError)
+    }
+}
+
+fun <T> catchUniqueConstraintViolation(function1: () -> T, error: CustomError,  log: Logger): Either<CustomError, T> = either {
+    try {
+        function1()
+    }
+    catch (ex: SQLException) {
+        val cause = ex.cause
+        if (cause is PSQLException) {
+            // Check for unique violation (PostgreSQL error code: 23505)
+            if (cause.sqlState == PSQLState.UNIQUE_VIOLATION.state) {
+                raise(error)
+            }
+        }
         log.error(ex.message)
         raise(DatabaseOperationFailedError)
     }
