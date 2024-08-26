@@ -1,8 +1,10 @@
 package com.motorq.meetup.service
 
 import arrow.core.Either
+import arrow.core.flatMap
 import arrow.core.raise.either
 import arrow.core.raise.ensure
+import arrow.core.traverse
 import com.motorq.meetup.dto.BookingRequest
 import com.motorq.meetup.ConferenceStartedError
 import com.motorq.meetup.CustomError
@@ -12,6 +14,7 @@ import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
 import com.motorq.meetup.dto.User
+import com.motorq.meetup.ensureNot
 import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.repositories.UserRepository
@@ -28,7 +31,7 @@ class BookingService(
     fun bookSlot(bookingRequest: BookingRequest): Either<CustomError, Booking> = either {
         val conference = conferenceRepository.getConferenceByName(bookingRequest.conferenceName).bind()
         val user = userRepository.getUserByUserId(bookingRequest.userId).bind()
-        val userBookings = bookingRepository.getBookingsForUserId(user.userId)
+        val userBookings = bookingRepository.getBookingsForUserId(user.userId).bind()
         checkIfValidRequest(conference, userBookings).bind()
         val bookings = bookSlotBasedOnAvailability(user, conference).bind()
         bookings
@@ -38,7 +41,7 @@ class BookingService(
         user: User,
         conference: Conference
     ): Either<CustomError, Booking> {
-        return when(conference.isSlotAvailable()) {
+        return when (conference.isSlotAvailable()) {
             true -> handleSuccessfulBooking(user, conference)
             false -> addUserToWaitlist(user, conference)
         }
@@ -80,18 +83,19 @@ class BookingService(
         userBookings: Set<Booking>,
         conference: Conference
     ): Either<CustomError, Unit> = either {
-        val isAlreadyBooked = userBookings.any { it.conference == conference }
+        val isAlreadyBooked = userBookings.any { it.conferenceName == conference.name }
         ensure(!isAlreadyBooked)
         {
             raise(ExistingBookingFoundError)
         }
     }
 
-    private fun checkIfUserHasAnyOverlappingConference(userBookings: Set<Booking>, conference: Conference): Either<CustomError, Unit> = either {
-        val isOverlappingConference = userBookings.any { it.conference.isOverlappingConference(conference) }
-        ensure(!isOverlappingConference)
-        {
-            raise(OverlappingConferenceError)
-        }
+    private fun checkIfUserHasAnyOverlappingConference(
+        userBookings: Set<Booking>,
+        conference: Conference
+    ): Either<CustomError, Unit> {
+        return userBookings.traverse { conferenceRepository.getConferenceByName(it.conferenceName) }
+            .map { it.any { bookedConference -> conference.isOverlappingConference(bookedConference) } }
+            .flatMap { either { ensureNot(it) { raise(OverlappingConferenceError) } } }
     }
 }

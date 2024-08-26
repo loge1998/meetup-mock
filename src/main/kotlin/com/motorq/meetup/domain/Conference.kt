@@ -11,7 +11,7 @@ data class Conference(
     val availableSlots: Int
 ) {
     fun isOverlappingConference(conference: Conference): Boolean {
-        return (this.endDateTime >= conference.startDatetime)
+        return this.startDatetime.isBefore(conference.endDateTime) && conference.startDatetime.isBefore(this.endDateTime)
     }
 
     fun isSlotAvailable(): Boolean {

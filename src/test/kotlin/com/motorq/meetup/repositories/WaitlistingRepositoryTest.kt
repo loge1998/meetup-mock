@@ -42,7 +42,7 @@ class WaitlistingRepositoryTest(@Autowired val waitlistingRepository: Waitlistin
     fun shouldAddWaitlistRecordForAConference() {
         val userId = "random id"
         val user = User(userId, "topics")
-        val bookingId = UUID.randomUUID().toString()
+        val bookingId = UUID.randomUUID()
         val conference = Conference(
             "test conference name",
             "test location",
@@ -51,7 +51,7 @@ class WaitlistingRepositoryTest(@Autowired val waitlistingRepository: Waitlistin
             Instant.parse("2024-08-02T07:10:34Z"),
             30
         )
-        val booking = Booking(bookingId, conference, user, BookingStatus.WAITLISTED, Instant.now())
+        val booking = Booking(bookingId, conference.name, user.userId, BookingStatus.WAITLISTED, Instant.now())
 
         waitlistingRepository.addWaitlistEntry(booking)
         val waitlistRecordOption =
@@ -70,8 +70,8 @@ class WaitlistingRepositoryTest(@Autowired val waitlistingRepository: Waitlistin
         val userId = "random id"
         val user = User(userId, "topics")
         val secondUser = User("random test", "")
-        val bookingId = UUID.randomUUID().toString()
-        val secondBookingId = UUID.randomUUID().toString()
+        val bookingId = UUID.randomUUID()
+        val secondBookingId = UUID.randomUUID()
         val conference = Conference(
             "test conference name",
             "test location",
@@ -80,8 +80,8 @@ class WaitlistingRepositoryTest(@Autowired val waitlistingRepository: Waitlistin
             Instant.parse("2024-08-02T07:10:34Z"),
             30
         )
-        val booking = Booking(bookingId, conference, user, BookingStatus.WAITLISTED, Instant.now())
-        val secondBooking = Booking(secondBookingId, conference, secondUser, BookingStatus.WAITLISTED, Instant.now())
+        val booking = Booking(bookingId, conference.name, user.userId, BookingStatus.WAITLISTED, Instant.now())
+        val secondBooking = Booking(secondBookingId, conference.name, secondUser.userId, BookingStatus.WAITLISTED, Instant.now())
 
         waitlistingRepository.addWaitlistEntry(booking)
         waitlistingRepository.addWaitlistEntry(secondBooking)

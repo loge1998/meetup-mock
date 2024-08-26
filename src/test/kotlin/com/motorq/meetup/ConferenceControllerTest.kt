@@ -5,12 +5,14 @@ import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.dto.AddConferenceRequest
 import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.dto.BookingRequest
+import com.motorq.meetup.entity.BookingsTable
 import com.motorq.meetup.entity.UserTable
 import com.motorq.meetup.entity.WaitlistingTable
 import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.repositories.UserRepository
 import com.motorq.meetup.repositories.WaitlistingRepository
+import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 import java.time.Instant
@@ -38,7 +40,7 @@ class ConferenceControllerTest(
         transaction {
             conferenceRepository.clearAll()
             UserTable.deleteAll()
-            bookingRepository.clearAll()
+            BookingsTable.deleteAll()
             WaitlistingTable.deleteAll()
         }
     }
@@ -160,8 +162,8 @@ class ConferenceControllerTest(
             waitlistingRepository.getTheOldestWaitlistingRecordForConference(conferenceName).shouldBeSome()
 
         assertEquals(0, conference.availableSlots)
-        assertEquals(conferenceRequest.toConference(), booking.conference)
-        assertEquals(userRequest.toUser(), booking.user)
+        assertEquals(conferenceRequest.name, booking.conferenceName)
+        assertEquals(userRequest.userId, booking.userId)
         assertEquals(BookingStatus.WAITLISTED, booking.status)
 
         assertEquals(booking.id, waitlistRecord.bookingId)
@@ -231,12 +233,7 @@ class ConferenceControllerTest(
 
         bookingRepository.addBooking(userRequest.toUser(), conferenceRequest.toConference(), BookingStatus.CONFIRMED)
 
-        val response = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName))
-
-        assertTrue { response.isLeft() }
-        response.onLeft {
-            assertEquals(OverlappingConferenceError, it)
-        }
+        conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeLeft(OverlappingConferenceError)
     }
 
     @Test
@@ -261,8 +258,8 @@ class ConferenceControllerTest(
         val response = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName))
         assertTrue { response.isRight() }
         response.onRight {
-            assertEquals(conferenceRequest.toConference(), it.conference)
-            assertEquals(userRequest.toUser(), it.user)
+            assertEquals(conferenceRequest.name, it.conferenceName)
+            assertEquals(userRequest.userId, it.userId)
             assertEquals(BookingStatus.CONFIRMED, it.status)
         }
         conferenceRepository.getConferenceByName(conferenceName).onRight {

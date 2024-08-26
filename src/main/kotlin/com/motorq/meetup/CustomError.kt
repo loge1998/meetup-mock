@@ -1,9 +1,12 @@
 package com.motorq.meetup
 
 import arrow.core.Either
+import arrow.core.raise.Raise
 import arrow.core.raise.either
 import java.sql.SQLException
 import org.slf4j.Logger
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 sealed class CustomError(val message: String)
 
@@ -24,4 +27,8 @@ fun <T> wrapWithTryCatch(function1: () -> T, log: Logger): Either<CustomError, T
         log.error(ex.message)
         raise(DatabaseOperationFailedError)
     }
+}
+
+fun <Error> Raise<Error>.ensureNot(condition: Boolean, raise: () -> Error) {
+    return if (!condition) Unit else raise(raise())
 }
