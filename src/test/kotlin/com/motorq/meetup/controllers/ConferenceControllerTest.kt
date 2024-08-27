@@ -1,11 +1,13 @@
 package com.motorq.meetup.controllers
 
+import com.motorq.meetup.BookingNotFoundError
 import com.motorq.meetup.ConferenceAlreadyExistError
 import com.motorq.meetup.ConferenceNotFoundError
 import com.motorq.meetup.ConferenceStartedError
 import com.motorq.meetup.ExistingBookingFoundError
 import com.motorq.meetup.OverlappingConferenceError
 import com.motorq.meetup.UserNotFoundError
+import com.motorq.meetup.WrongRequestError
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.dto.AddConferenceRequest
 import com.motorq.meetup.dto.AddUserRequest
@@ -22,6 +24,7 @@ import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 import java.time.Instant
+import java.util.*
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
@@ -328,5 +331,95 @@ class ConferenceControllerTest(
         assertEquals(BookingStatus.WAITLISTED, bookingStatusResponse.bookingStatus)
         assertEquals(false, bookingStatusResponse.isSlotAvailable)
         assertEquals(null, bookingStatusResponse.confirmationEndTime)
+    }
+
+    @Test
+    fun shouldReturnBookingNotFoundWhenBookingIdIsNotPresent() {
+         conferenceController.getBookingStatus(UUID.randomUUID()).shouldBeLeft(BookingNotFoundError)
+    }
+
+    @Test
+    fun shouldReturnBookingNotFoundWhenBookingIdIsNotPresentForCancelBooking() {
+        conferenceController.cancelBooking(UUID.randomUUID()).shouldBeLeft(BookingNotFoundError)
+    }
+
+    @Test
+    fun shouldReturnBookingNotFoundWhenBookingIdIsNotPresentForConfirmBooking() {
+        conferenceController.confirmBooking(UUID.randomUUID()).shouldBeLeft(BookingNotFoundError)
+    }
+
+    @Test
+    fun shouldReturnWrongRequestErrorWhenBookingStatusIsNotWaitlistedForConfirmBooking() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            10
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+        conferenceController.addConference(conferenceRequest)
+        userRepository.addUser(userRequest)
+
+        val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+        conferenceController.confirmBooking(bookingId = booking.id).shouldBeLeft(WrongRequestError("Provided booking is not in waitlisting"))
+    }
+
+    @Test
+    fun shouldReturnWrongRequestErrorWhenBookingStatusIsAlreadyCancelledForCancelBooking() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            10
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+        conferenceController.addConference(conferenceRequest)
+        userRepository.addUser(userRequest)
+
+        val booking = bookingRepository.addBooking(
+            userRequest.toUser(),
+            conferenceRequest.toConference(),
+            BookingStatus.CANCELLED
+        ).shouldBeRight()
+
+        conferenceController.cancelBooking(bookingId = booking.id).shouldBeLeft(WrongRequestError("Provided booking is already cancelled"))
+    }
+
+    @Test
+    fun shouldReturnWrongRequestErrorWhenBookingIsNotEligibleForConfirmation() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            0
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+        conferenceController.addConference(conferenceRequest)
+        userRepository.addUser(userRequest)
+
+        val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+        conferenceController.confirmBooking(bookingId = booking.id)
+            .shouldBeLeft(WrongRequestError("Provided booking is not eligible for confirmation."))
     }
 }
