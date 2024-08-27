@@ -476,4 +476,109 @@ class ConferenceControllerTest(
 
         conferenceController.confirmBooking(bookingId = booking.id).shouldBeLeft(WrongRequestError("Provided booking is not eligible for confirmation."))
     }
+
+    @Test
+    fun shouldCancelWaitListedBookingWithoutNotifyingOtherUsers() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            0
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        conferenceController.addConference(conferenceRequest).shouldBeRight()
+        userRepository.addUser(userRequest).shouldBeRight()
+        val booking =
+            conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+
+        val bookingStatusResponse = conferenceController.cancelBooking(booking.id).shouldBeRight()
+
+        assertEquals(booking.id, bookingStatusResponse.bookingId)
+        assertEquals(BookingStatus.CANCELLED, bookingStatusResponse.bookingStatus)
+
+        waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeRight().shouldBeNone()
+    }
+
+    @Test
+    fun shouldCancelConfirmedBookingWithNotifyingTheNextWaitListedUser() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val userId2 = "random uuid2"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            1
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        val userRequest2 = AddUserRequest(
+            userId2,
+            "test location 2"
+        )
+
+        conferenceController.addConference(conferenceRequest).shouldBeRight()
+        userRepository.addUser(userRequest).shouldBeRight()
+        userRepository.addUser(userRequest2).shouldBeRight()
+
+        val booking =
+            conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+
+        val booking2 = conferenceController.bookConferenceTicket(BookingRequest(userId2, conferenceName)).shouldBeRight()
+
+        val bookingStatusResponse = conferenceController.cancelBooking(booking.id).shouldBeRight()
+
+        assertEquals(booking.id, bookingStatusResponse.bookingId)
+        assertEquals(BookingStatus.CANCELLED, bookingStatusResponse.bookingStatus)
+
+        val waitListRecord = waitlistingRepository.getWaitListingRecordByBookingId(booking2.id).shouldBeRight()
+
+        assertTrue(waitListRecord.isRequestSent)
+    }
+
+    @Test
+    fun shouldCancelConfirmedBookingWithIncrementingConferenceAvailability() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            1
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        conferenceController.addConference(conferenceRequest).shouldBeRight()
+        userRepository.addUser(userRequest).shouldBeRight()
+
+        val booking =
+            conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+
+        val bookingStatusResponse = conferenceController.cancelBooking(booking.id).shouldBeRight()
+
+        assertEquals(booking.id, bookingStatusResponse.bookingId)
+        assertEquals(BookingStatus.CANCELLED, bookingStatusResponse.bookingStatus)
+
+        waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeRight().shouldBeNone()
+        val conference = conferenceRepository.getConferenceByName(conferenceName).shouldBeRight()
+        assertEquals(1, conference.availableSlots)
+    }
 }

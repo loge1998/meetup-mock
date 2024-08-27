@@ -50,3 +50,6 @@ org:
     background-job-server:
       enabled: true
       poll-interval-in-seconds: 5
+
+job-scheduler:
+  time-to-wait: 3600

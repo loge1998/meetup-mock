@@ -32,6 +32,7 @@ import java.util.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jobrunr.scheduling.BackgroundJob
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
@@ -39,7 +40,8 @@ class BookingService(
     private val conferenceRepository: ConferenceRepository,
     private val userRepository: UserRepository,
     private val bookingRepository: BookingRepository,
-    private val waitlistingRepository: WaitListingRepository
+    private val waitlistingRepository: WaitListingRepository,
+    @Value("job-scheduler.time-to-wait") private val timeToWait: Long
 ) {
     fun bookSlot(bookingRequest: BookingRequest): Either<CustomError, Booking> = either {
         val conference = conferenceRepository.getConferenceByName(bookingRequest.conferenceName).bind()
@@ -167,28 +169,26 @@ class BookingService(
         return BookingStatusResponse(booking.id, booking.status, null, null).right()
     }
 
-    private fun notifyNextWaitListedUser(conferenceName: String): Either<CustomError, Unit> =  either {
+    private fun notifyNextWaitListedUser(conferenceName: String): Either<CustomError, Unit> = either {
         val waitListRecord = waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).bind()
-        waitListRecord
-            .map {
-                scheduleBackgroundJobToCheckAcceptance(it).bind()
-                waitlistingRepository.setWaitListEndTime(it.bookingId, Instant.now().plus(1, ChronoUnit.HOURS)).bind()
-            }
-            .getOrElse { conferenceRepository.incrementConferenceAvailableSlot(conferenceName).bind() }
+        waitListRecord.map {
+            scheduleBackgroundJobToCheckAcceptance(it).bind()
+            waitlistingRepository.setWaitListEndTime(it.bookingId, Instant.now().plusSeconds(timeToWait)).bind()
+        }.getOrElse { conferenceRepository.incrementConferenceAvailableSlot(conferenceName).bind() }
     }
 
     private fun scheduleBackgroundJobToCheckAcceptance(it: WaitListRecord) =
         wrapWithTryCatch({
             BackgroundJob.schedule(
-                Instant.now().plus(1, ChronoUnit.HOURS)
-            ) { checkForAcceptanceOfWaitList(it) }
+                Instant.now().plusSeconds(timeToWait)
+            ) { checkForAcceptanceOfWaitList(it.bookingId, it.conferenceName) }
         }, logger)
 
-    private fun checkForAcceptanceOfWaitList(waitlistRecord: WaitListRecord) = either {
-        val booking = bookingRepository.getBookingsById(waitlistRecord.bookingId).bind()
+    fun checkForAcceptanceOfWaitList(bookingId: UUID, conferenceName: String) = either {
+        val booking = bookingRepository.getBookingsById(bookingId).bind()
         if(booking.status != BookingStatus.CONFIRMED) {
-            waitlistingRepository.resetWaitListRecord(waitlistRecord.bookingId).bind()
-            notifyNextWaitListedUser(waitlistRecord.conferenceName).bind()
+            waitlistingRepository.resetWaitListRecord(bookingId).bind()
+            notifyNextWaitListedUser(conferenceName).bind()
         }
     }.onLeft { throw RuntimeException("Operation failed") }
 

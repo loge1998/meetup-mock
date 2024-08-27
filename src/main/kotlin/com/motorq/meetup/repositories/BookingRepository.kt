@@ -64,10 +64,6 @@ class BookingRepository {
             .map { it.toBooking() }
     }, logger).flatMap { it.toEither { BookingNotFoundError } }
 
-    fun deleteById(bookingId: UUID) = wrapWithTryCatch({
-        BookingsTable.deleteWhere { id eq bookingId }
-    }, logger)
-
     fun updateStatus(bookingId: UUID, bookingStatus: BookingStatus) = wrapWithTryCatch({
        BookingsTable.update ({BookingsTable.id eq bookingId}) {
            it[status] = bookingStatus
