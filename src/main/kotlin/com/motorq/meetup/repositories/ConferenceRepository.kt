@@ -17,7 +17,6 @@ import com.motorq.meetup.wrapWithTryCatch
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.orWhere
 import org.jetbrains.exposed.sql.selectAll
@@ -61,21 +60,19 @@ class ConferenceRepository {
                     .map { it[ConferenceTable.availableSlots] }
                     .firstOrNull()
 
-                var updatedRows = -1
-                if (currentValue != null && currentValue > 1) {
-                    updatedRows = ConferenceTable.update({ ConferenceTable.name eq conferenceName }) {
+                val result = if (currentValue != null && currentValue >= 1) {
+                    ConferenceTable.update({ ConferenceTable.name eq conferenceName }) {
                         with(SqlExpressionBuilder) {
                             it.update(availableSlots, availableSlots - 1)
                         }
                     }
-                }
-                updatedRows
+                } else -1
+                result
             }
         }, logger).flatMap {
             either {
                 when (it) {
                     -1 -> raise(DatabaseOperationFailedError)
-                    0 -> raise(ConferenceNotFoundError)
                     else -> it
                 }
             }
