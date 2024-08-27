@@ -100,7 +100,6 @@ class ConferenceRepositoryTest(@Autowired val conferenceRepository: ConferenceRe
         assertThat(overlappingConferences).hasSameElementsAs(expectedAnswer)
     }
 
-
     private fun insertConference(conferenceName: String, startDateTime: String, endDateTime: String, availableSlot: Int = 1): Either<CustomError, Conference> {
       val conferenceRequest = AddConferenceRequest(
           conferenceName,

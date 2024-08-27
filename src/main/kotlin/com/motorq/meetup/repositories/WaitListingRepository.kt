@@ -1,14 +1,19 @@
 package com.motorq.meetup.repositories
 
+import arrow.core.Either
 import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.toOption
+import com.motorq.meetup.BookingNotFoundError
+import com.motorq.meetup.CustomError
 import com.motorq.meetup.WrongRequestError
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.WaitListRecord
 import com.motorq.meetup.entity.WaitlistingTable
+import com.motorq.meetup.filterOrError
 import com.motorq.meetup.wrapWithTryCatch
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
@@ -27,15 +32,15 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class WaitListingRepository {
 
-    fun getTheOldestWaitListingRecordForConference(conferenceName: String): Option<WaitListRecord> {
-        return WaitlistingTable.selectAll()
+    fun getTheOldestWaitListingRecordForConference(conferenceName: String): Either<CustomError, Option<WaitListRecord>> = wrapWithTryCatch({
+        WaitlistingTable.selectAll()
             .where { WaitlistingTable.conferenceName eq conferenceName }
             .andWhere { WaitlistingTable.isRequestSent neq true }
             .orderBy(WaitlistingTable.timestamp, SortOrder.ASC)
             .firstOrNull()
             .toOption()
             .map { it.toWaitListRecord() }
-    }
+    }, logger)
 
     fun addWaitListEntry(booking: Booking) = wrapWithTryCatch({
         WaitlistingTable.insert {
@@ -71,6 +76,13 @@ class WaitListingRepository {
     fun deleteByUserIdAndConferenceName(userId: String, conferenceName: String) = wrapWithTryCatch({
         WaitlistingTable.deleteWhere { (this.userId eq userId) and (this.conferenceName eq conferenceName)}
     }, logger)
+
+    fun setWaitListEndTime(bookingId: UUID, availabilityEndTime: Instant): Either<CustomError, Int> = wrapWithTryCatch({
+       WaitlistingTable.update ({ WaitlistingTable.bookingId eq bookingId }) {
+           it[isRequestSent] = true
+           it[slotAvailabilityEndTime] = availabilityEndTime
+       }
+    }, logger).flatMap { it.filterOrError({it > 0}, BookingNotFoundError) }
 
     companion object {
         private val logger = LoggerFactory.getLogger(WaitListingRepository::class.java)

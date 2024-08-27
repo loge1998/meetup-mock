@@ -21,9 +21,11 @@ import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.repositories.UserRepository
 import com.motorq.meetup.repositories.WaitListingRepository
 import io.kotest.assertions.arrow.core.shouldBeLeft
+import io.kotest.assertions.arrow.core.shouldBeNone
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.*
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -64,11 +66,7 @@ class ConferenceControllerTest(
             Instant.parse("2024-08-02T07:10:34Z"),
             30
         )
-        val response = conferenceController.addConference(conferenceRequest)
-        assertTrue(response.isRight())
-        response.onRight {
-            assertEquals(conferenceRequest.toConference(), it)
-        }
+        conferenceController.addConference(conferenceRequest).shouldBeRight(conferenceRequest.toConference())
     }
 
     @Test
@@ -82,22 +80,13 @@ class ConferenceControllerTest(
             30
         )
         conferenceController.addConference(conferenceRequest)
-        val response = conferenceController.addConference(conferenceRequest)
-
-        assertTrue(response.isLeft())
-        response.onLeft {
-            assertEquals(ConferenceAlreadyExistError, it)
-        }
+        conferenceController.addConference(conferenceRequest).shouldBeLeft(ConferenceAlreadyExistError)
     }
 
     @Test
     fun shouldThrowConferenceNotFoundErrorWhenBookingConferenceDoesNotExist() {
         val conferenceName = "test conference name"
-        val response = conferenceController.bookConferenceTicket(BookingRequest("randomId", conferenceName))
-        assertTrue { response.isLeft() }
-        response.onLeft {
-            assertEquals(ConferenceNotFoundError, it)
-        }
+        conferenceController.bookConferenceTicket(BookingRequest("randomId", conferenceName)).shouldBeLeft(ConferenceNotFoundError)
     }
 
     @Test
@@ -112,11 +101,7 @@ class ConferenceControllerTest(
             30
         )
         conferenceController.addConference(conferenceRequest)
-        val response = conferenceController.bookConferenceTicket(BookingRequest("randomId", conferenceName))
-        assertTrue { response.isLeft() }
-        response.onLeft {
-            assertEquals(UserNotFoundError, it)
-        }
+        conferenceController.bookConferenceTicket(BookingRequest("randomId", conferenceName)).shouldBeLeft(UserNotFoundError)
     }
 
     @Test
@@ -138,12 +123,7 @@ class ConferenceControllerTest(
         conferenceController.addConference(conferenceRequest)
         userRepository.addUser(userRequest)
 
-        val response = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName))
-
-        assertTrue { response.isLeft() }
-        response.onLeft {
-            assertEquals(ConferenceStartedError, it)
-        }
+        conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeLeft(ConferenceStartedError)
     }
 
     @Test
@@ -168,7 +148,8 @@ class ConferenceControllerTest(
         val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
         val conference = conferenceRepository.getConferenceByName(conferenceName).shouldBeRight()
         val waitlistRecord =
-            waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeSome()
+            waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeRight()
+                .shouldBeSome()
 
         assertEquals(0, conference.availableSlots)
         assertEquals(conferenceRequest.name, booking.conferenceName)
@@ -421,5 +402,78 @@ class ConferenceControllerTest(
         val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
         conferenceController.confirmBooking(bookingId = booking.id)
             .shouldBeLeft(WrongRequestError("Provided booking is not eligible for confirmation."))
+    }
+
+    @Test
+    fun shouldReturnBookingResponseWhenConfirmBookingRequestIsSuccessful() {
+        val conferenceName = "test conference name"
+        val conferenceName2 = "test2"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            0
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        val conferenceRequest2 = AddConferenceRequest(
+            conferenceName2,
+            "test location 2",
+            "test topic",
+            Instant.parse("2024-09-02T06:50:34Z"),
+            Instant.parse("2024-09-02T07:40:34Z"),
+            0
+        )
+
+        val conference = conferenceController.addConference(conferenceRequest).shouldBeRight()
+        val conference2 = conferenceController.addConference(conferenceRequest2).shouldBeRight()
+        val user = userRepository.addUser(userRequest).shouldBeRight()
+        val booking1 = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).shouldBeRight()
+        val booking2 = bookingRepository.addBooking(user, conference2, BookingStatus.WAITLISTED).shouldBeRight()
+
+        waitlistingRepository.addWaitListEntry(booking1)
+        waitlistingRepository.addWaitListEntry(booking2)
+        waitlistingRepository.setWaitListEndTime(booking1.id, Instant.now().plus(1, ChronoUnit.HOURS))
+
+        val bookingStatusResponse = conferenceController.confirmBooking(bookingId = booking1.id).shouldBeRight()
+
+        assertEquals(booking1.id, bookingStatusResponse.bookingId)
+        assertEquals(BookingStatus.CONFIRMED, bookingStatusResponse.bookingStatus)
+
+        waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeRight().shouldBeNone()
+        waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName2).shouldBeRight().shouldBeNone()
+    }
+
+    @Test
+    fun shouldReturnWrongRequestErrorWhenTheSlotAvailabilityEndTimeIsExceeded() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            0
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        val conference = conferenceController.addConference(conferenceRequest).shouldBeRight()
+        val user = userRepository.addUser(userRequest).shouldBeRight()
+        val booking = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).shouldBeRight()
+
+        waitlistingRepository.addWaitListEntry(booking)
+        waitlistingRepository.setWaitListEndTime(booking.id, Instant.now().minusSeconds(5))
+
+        conferenceController.confirmBooking(bookingId = booking.id).shouldBeLeft(WrongRequestError("Provided booking is not eligible for confirmation."))
     }
 }

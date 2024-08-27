@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import common.TestContainerRunner
+import io.kotest.assertions.arrow.core.shouldBeRight
+import io.kotest.assertions.arrow.core.shouldBeSome
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -54,15 +56,15 @@ class WaitListingRepositoryTest(@Autowired val waitlistingRepository: WaitListin
         val booking = Booking(bookingId, conference.name, user.userId, BookingStatus.WAITLISTED, Instant.now())
 
         waitlistingRepository.addWaitListEntry(booking)
-        val waitlistRecordOption =
+        val waitListRecord =
             waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName = conference.name)
-        assertTrue { waitlistRecordOption.isSome() }
-        waitlistRecordOption.onSome {
-            assertEquals(bookingId, it.bookingId)
-            assertFalse { it.isRequestSent }
-            assertEquals(conference.name, it.conferenceName)
-            assertEquals(userId, it.userId)
-        }
+                .shouldBeRight()
+                .shouldBeSome()
+
+        assertEquals(bookingId, waitListRecord.bookingId)
+        assertFalse { waitListRecord.isRequestSent }
+        assertEquals(conference.name, waitListRecord.conferenceName)
+        assertEquals(userId, waitListRecord.userId)
     }
 
     @Test
@@ -86,14 +88,14 @@ class WaitListingRepositoryTest(@Autowired val waitlistingRepository: WaitListin
         waitlistingRepository.addWaitListEntry(booking)
         waitlistingRepository.addWaitListEntry(secondBooking)
 
-        val waitlistRecordOption =
+        val waitListRecord =
             waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName = conference.name)
-        assertTrue { waitlistRecordOption.isSome() }
-        waitlistRecordOption.onSome {
-            assertEquals(bookingId, it.bookingId)
-            assertFalse { it.isRequestSent }
-            assertEquals(conference.name, it.conferenceName)
-            assertEquals(userId, it.userId)
-        }
+                .shouldBeRight()
+                .shouldBeSome()
+
+        assertEquals(bookingId, waitListRecord.bookingId)
+        assertFalse { waitListRecord.isRequestSent }
+        assertEquals(conference.name, waitListRecord.conferenceName)
+        assertEquals(userId, waitListRecord.userId)
     }
 }
