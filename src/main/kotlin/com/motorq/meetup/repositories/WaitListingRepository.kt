@@ -3,10 +3,9 @@ package com.motorq.meetup.repositories
 import arrow.core.Option
 import arrow.core.flatMap
 import arrow.core.toOption
-import com.motorq.meetup.BookingNotFoundError
+import com.motorq.meetup.WrongRequestError
 import com.motorq.meetup.domain.Booking
-import com.motorq.meetup.domain.WaitlistRecord
-import com.motorq.meetup.entity.BookingsTable
+import com.motorq.meetup.domain.WaitListRecord
 import com.motorq.meetup.entity.WaitlistingTable
 import com.motorq.meetup.wrapWithTryCatch
 import java.time.Instant
@@ -26,19 +25,19 @@ import org.springframework.transaction.annotation.Transactional
 
 @Repository
 @Transactional
-class WaitlistingRepository {
+class WaitListingRepository {
 
-    fun getTheOldestWaitlistingRecordForConference(conferenceName: String): Option<WaitlistRecord> {
+    fun getTheOldestWaitListingRecordForConference(conferenceName: String): Option<WaitListRecord> {
         return WaitlistingTable.selectAll()
             .where { WaitlistingTable.conferenceName eq conferenceName }
             .andWhere { WaitlistingTable.isRequestSent neq true }
             .orderBy(WaitlistingTable.timestamp, SortOrder.ASC)
             .firstOrNull()
             .toOption()
-            .map { it.toWaitlistRecord() }
+            .map { it.toWaitListRecord() }
     }
 
-    fun addWaitlistEntry(booking: Booking) = wrapWithTryCatch({
+    fun addWaitListEntry(booking: Booking) = wrapWithTryCatch({
         WaitlistingTable.insert {
             it[bookingId] = booking.id
             it[userId] = booking.userId
@@ -49,13 +48,13 @@ class WaitlistingRepository {
         }
     }, logger)
 
-    fun getWaitlistingRecordByBookingId(bookingId: UUID) = wrapWithTryCatch({
+    fun getWaitListingRecordByBookingId(bookingId: UUID) = wrapWithTryCatch({
         WaitlistingTable.selectAll()
             .where { WaitlistingTable.bookingId eq bookingId }
             .firstOrNull()
             .toOption()
-            .map { it.toWaitlistRecord() }
-    }, logger).flatMap { it.toEither { BookingNotFoundError } }
+            .map { it.toWaitListRecord() }
+    }, logger).flatMap { it.toEither { WrongRequestError("Provided booking is not in waitlisting") } }
 
     fun deleteByBookingId(id: UUID) = wrapWithTryCatch({
         WaitlistingTable.deleteWhere { bookingId eq id }
@@ -74,11 +73,11 @@ class WaitlistingRepository {
     }, logger)
 
     companion object {
-        private val logger = LoggerFactory.getLogger(WaitlistingRepository::class.java)
+        private val logger = LoggerFactory.getLogger(WaitListingRepository::class.java)
     }
 }
 
-private fun ResultRow.toWaitlistRecord(): WaitlistRecord = WaitlistRecord(
+private fun ResultRow.toWaitListRecord(): WaitListRecord = WaitListRecord(
     this[WaitlistingTable.bookingId],
     this[WaitlistingTable.userId],
     this[WaitlistingTable.conferenceName],

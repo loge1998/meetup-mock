@@ -19,7 +19,7 @@ import com.motorq.meetup.entity.WaitlistingTable
 import com.motorq.meetup.repositories.BookingRepository
 import com.motorq.meetup.repositories.ConferenceRepository
 import com.motorq.meetup.repositories.UserRepository
-import com.motorq.meetup.repositories.WaitlistingRepository
+import com.motorq.meetup.repositories.WaitListingRepository
 import io.kotest.assertions.arrow.core.shouldBeLeft
 import io.kotest.assertions.arrow.core.shouldBeRight
 import io.kotest.assertions.arrow.core.shouldBeSome
@@ -41,7 +41,7 @@ class ConferenceControllerTest(
     @Autowired val conferenceRepository: ConferenceRepository,
     @Autowired val userRepository: UserRepository,
     @Autowired val bookingRepository: BookingRepository,
-    @Autowired val waitlistingRepository: WaitlistingRepository
+    @Autowired val waitlistingRepository: WaitListingRepository
 ) {
 
     @BeforeEach
@@ -168,7 +168,7 @@ class ConferenceControllerTest(
         val booking = conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
         val conference = conferenceRepository.getConferenceByName(conferenceName).shouldBeRight()
         val waitlistRecord =
-            waitlistingRepository.getTheOldestWaitlistingRecordForConference(conferenceName).shouldBeSome()
+            waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeSome()
 
         assertEquals(0, conference.availableSlots)
         assertEquals(conferenceRequest.name, booking.conferenceName)

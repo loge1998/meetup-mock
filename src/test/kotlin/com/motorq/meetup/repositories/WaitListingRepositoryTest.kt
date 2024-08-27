@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
 
 
 @SpringBootTest
-class WaitlistingRepositoryTest(@Autowired val waitlistingRepository: WaitlistingRepository){
+class WaitListingRepositoryTest(@Autowired val waitlistingRepository: WaitListingRepository){
 
     companion object {
         @JvmStatic
@@ -53,9 +53,9 @@ class WaitlistingRepositoryTest(@Autowired val waitlistingRepository: Waitlistin
         )
         val booking = Booking(bookingId, conference.name, user.userId, BookingStatus.WAITLISTED, Instant.now())
 
-        waitlistingRepository.addWaitlistEntry(booking)
+        waitlistingRepository.addWaitListEntry(booking)
         val waitlistRecordOption =
-            waitlistingRepository.getTheOldestWaitlistingRecordForConference(conferenceName = conference.name)
+            waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName = conference.name)
         assertTrue { waitlistRecordOption.isSome() }
         waitlistRecordOption.onSome {
             assertEquals(bookingId, it.bookingId)
@@ -83,11 +83,11 @@ class WaitlistingRepositoryTest(@Autowired val waitlistingRepository: Waitlistin
         val booking = Booking(bookingId, conference.name, user.userId, BookingStatus.WAITLISTED, Instant.now())
         val secondBooking = Booking(secondBookingId, conference.name, secondUser.userId, BookingStatus.WAITLISTED, Instant.now())
 
-        waitlistingRepository.addWaitlistEntry(booking)
-        waitlistingRepository.addWaitlistEntry(secondBooking)
+        waitlistingRepository.addWaitListEntry(booking)
+        waitlistingRepository.addWaitListEntry(secondBooking)
 
         val waitlistRecordOption =
-            waitlistingRepository.getTheOldestWaitlistingRecordForConference(conferenceName = conference.name)
+            waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName = conference.name)
         assertTrue { waitlistRecordOption.isSome() }
         waitlistRecordOption.onSome {
             assertEquals(bookingId, it.bookingId)
