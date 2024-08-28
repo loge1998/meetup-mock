@@ -55,23 +55,27 @@ class BookingService(
             .flatMap { enrichWithWaitListingDetails(it) }
 
     fun cancelBooking(bookingId: UUID): Either<CustomError, BookingStatusResponse> = either {
-        val booking = bookingRepository.getBookingsById(bookingId).bind()
-        validCancelBookingRequest(booking).bind()
-        bookingRepository.updateStatus(bookingId, BookingStatus.CANCELLED).bind()
-        waitlistingRepository.deleteByBookingId(bookingId).bind()
-        if (booking.isConfirmed()) {
-            notifyNextWaitListedUser(booking.conferenceName).bind()
+        transaction {
+            val booking = bookingRepository.getBookingsById(bookingId).bind()
+            validCancelBookingRequest(booking).bind()
+            bookingRepository.updateStatus(bookingId, BookingStatus.CANCELLED).bind()
+            waitlistingRepository.deleteByBookingId(bookingId).bind()
+            if (booking.isConfirmed()) {
+                notifyNextWaitListedUser(booking.conferenceName).bind()
+            }
+            getBookingStatus(bookingId).bind()
         }
-        getBookingStatus(bookingId).bind()
     }
 
     fun confirmBooking(bookingId: UUID) = either {
-        val booking = bookingRepository.getBookingsById(bookingId).bind()
-        val waitListRecord = waitlistingRepository.getWaitListingRecordByBookingId(bookingId).bind()
-        validConfirmBookingRequest(booking, waitListRecord).bind()
-        bookingRepository.updateStatus(bookingId, BookingStatus.CONFIRMED).bind()
-        removeUserFromOverlappingConferenceWaitListQueue(booking.userId, booking.conferenceName).bind()
-        getBookingStatus(bookingId).bind()
+        transaction {
+            val booking = bookingRepository.getBookingsById(bookingId).bind()
+            val waitListRecord = waitlistingRepository.getWaitListingRecordByBookingId(bookingId).bind()
+            validConfirmBookingRequest(booking, waitListRecord).bind()
+            bookingRepository.updateStatus(bookingId, BookingStatus.CONFIRMED).bind()
+            removeUserFromOverlappingConferenceWaitListQueue(booking.userId, booking.conferenceName).bind()
+            getBookingStatus(bookingId).bind()
+        }
     }
 
     private fun checkIfValidRequest(
