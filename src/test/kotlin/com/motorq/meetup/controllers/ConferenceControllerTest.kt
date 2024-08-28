@@ -671,6 +671,54 @@ class ConferenceControllerTest(
         waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeRight().shouldBeNone()
     }
 
+    @Test
+    fun shouldThrowConferenceStartedErrorForConfirmBookingWhenTheBookingTimeHasExceededTheStartTime() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-08-02T06:10:34Z"),
+            Instant.parse("2024-08-02T07:10:34Z"),
+            30
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        val conference = conferenceController.addConference(conferenceRequest).shouldBeRight()
+        val user = userRepository.addUser(userRequest).shouldBeRight()
+        val booking = bookingRepository.addBooking(user, conference, BookingStatus.WAITLISTED).shouldBeRight()
+        waitlistingRepository.addWaitListEntry(booking).shouldBeRight()
+
+        conferenceController.confirmBooking(booking.id).shouldBeLeft(ConferenceStartedError)
+    }
+
+    @Test
+    fun shouldThrowConferenceStartedErrorForCancelBookingWhenTheBookingTimeHasExceededTheStartTime() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-08-02T06:10:34Z"),
+            Instant.parse("2024-08-02T07:10:34Z"),
+            30
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+        val conference = conferenceController.addConference(conferenceRequest).shouldBeRight()
+        val user = userRepository.addUser(userRequest).shouldBeRight()
+        val booking = bookingRepository.addBooking(user, conference, BookingStatus.CONFIRMED).shouldBeRight()
+
+        conferenceController.cancelBooking(booking.id).shouldBeLeft(ConferenceStartedError)
+    }
+
     private fun checkForCorrectState(bookingId1: UUID, bookingId2: UUID): Boolean {
         val waitListRecord = waitlistingRepository.getWaitListingRecordByBookingId(bookingId1).shouldBeRight()
         val waitListRecord2 = waitlistingRepository.getWaitListingRecordByBookingId(bookingId2).shouldBeRight()
