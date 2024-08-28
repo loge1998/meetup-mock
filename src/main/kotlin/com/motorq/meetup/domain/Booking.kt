@@ -12,4 +12,5 @@ data class Booking(
 ) {
     fun isInWaitList() = (status == BookingStatus.WAITLISTED)
     fun isConfirmed() = (status == BookingStatus.CONFIRMED)
+    fun isCancelled() = (status == BookingStatus.CANCELLED)
 }

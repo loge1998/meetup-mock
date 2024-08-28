@@ -152,7 +152,7 @@ class BookingService(
     }
 
     private fun validCancelBookingRequest(booking: Booking, conference: Conference): Either<CustomError, Unit> = either {
-        ensureNot(booking.status == BookingStatus.CANCELLED) {
+        ensureNot(booking.isCancelled()) {
             raise(WrongRequestError("Provided booking is already cancelled"))
         }
         checkIfConferenceIsStillOpen(conference).bind()
@@ -207,17 +207,7 @@ class BookingService(
 
     private fun removeUserFromOverlappingConferenceWaitListQueue(userId: String, conferenceName: String) = either {
         val overlappingConferences = conferenceRepository.getAllOverlappingConference(conferenceName).bind()
-        overlappingConferences.let<Iterable<String>, Either<CustomError, List<Int>>> { l ->
-            either {
-                l.map {
-                    waitlistingRepository.deleteByUserIdAndConferenceName(
-                        userId,
-                        it
-                    ).bind()
-                }
-            }
-        }
-            .bind()
+        overlappingConferences.traverse { waitlistingRepository.deleteByUserIdAndConferenceName(userId, it) }.bind()
     }
 
     companion object {
