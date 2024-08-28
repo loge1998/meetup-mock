@@ -27,6 +27,8 @@ import io.kotest.assertions.arrow.core.shouldBeSome
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
+import java.util.concurrent.TimeUnit
+import org.awaitility.Awaitility.await
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
@@ -580,5 +582,98 @@ class ConferenceControllerTest(
         waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeRight().shouldBeNone()
         val conference = conferenceRepository.getConferenceByName(conferenceName).shouldBeRight()
         assertEquals(1, conference.availableSlots)
+    }
+
+    @Test
+    fun shouldScheduleABackgroundJobWhenNotifyingTheNextWaitListedUser() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val userId2 = "random uuid2"
+        val userId3 = "random uuid3"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            1
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        val userRequest2 = AddUserRequest(
+            userId2,
+            "test location 2"
+        )
+
+        val userRequest3 = AddUserRequest(
+            userId3,
+            "test location 3"
+        )
+
+        conferenceController.addConference(conferenceRequest).shouldBeRight()
+        userRepository.addUser(userRequest).shouldBeRight()
+        userRepository.addUser(userRequest2).shouldBeRight()
+        userRepository.addUser(userRequest3).shouldBeRight()
+
+        val booking =
+            conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+
+        val booking2 = conferenceController.bookConferenceTicket(BookingRequest(userId2, conferenceName)).shouldBeRight()
+
+        val booking3 = conferenceController.bookConferenceTicket(BookingRequest(userId3, conferenceName)).shouldBeRight()
+
+        conferenceController.cancelBooking(booking.id).shouldBeRight()
+
+        await().atMost(10, TimeUnit.SECONDS).until { checkForCorrectState(booking2.id, booking3.id) };
+    }
+
+    @Test
+    fun shouldBeAbleToAcceptTheWaitListRequestPostAnotherUserHasCancelled() {
+        val conferenceName = "test conference name"
+        val userId = "random uuid"
+        val userId2 = "random uuid2"
+        val conferenceRequest = AddConferenceRequest(
+            conferenceName,
+            "test location",
+            "test topic, test topics 2",
+            Instant.parse("2024-09-02T06:10:34Z"),
+            Instant.parse("2024-09-02T07:10:34Z"),
+            1
+        )
+        val userRequest = AddUserRequest(
+            userId,
+            "test location",
+        )
+
+        val userRequest2 = AddUserRequest(
+            userId2,
+            "test location 2"
+        )
+
+        conferenceController.addConference(conferenceRequest).shouldBeRight()
+        userRepository.addUser(userRequest).shouldBeRight()
+        userRepository.addUser(userRequest2).shouldBeRight()
+
+        val booking =
+            conferenceController.bookConferenceTicket(BookingRequest(userId, conferenceName)).shouldBeRight()
+
+        val booking2 = conferenceController.bookConferenceTicket(BookingRequest(userId2, conferenceName)).shouldBeRight()
+
+        conferenceController.cancelBooking(booking.id).shouldBeRight()
+        val bookingStatusResponse = conferenceController.confirmBooking(booking2.id).shouldBeRight()
+
+        assertEquals(booking2.id, bookingStatusResponse.bookingId)
+        assertEquals(BookingStatus.CONFIRMED, bookingStatusResponse.bookingStatus)
+
+        waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).shouldBeRight().shouldBeNone()
+    }
+
+    private fun checkForCorrectState(bookingId1: UUID, bookingId2: UUID): Boolean {
+        val waitListRecord = waitlistingRepository.getWaitListingRecordByBookingId(bookingId1).shouldBeRight()
+        val waitListRecord2 = waitlistingRepository.getWaitListingRecordByBookingId(bookingId2).shouldBeRight()
+        return !waitListRecord.isRequestSent && waitListRecord2.isRequestSent
     }
 }

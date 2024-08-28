@@ -19,7 +19,7 @@ org:
     port: 8000
     background-job-server:
       enabled: true
-      poll-interval-in-seconds: 1
+      poll-interval-in-seconds: 5
 
 job-scheduler:
-  time-to-wait: 1
+  time-to-wait: 7

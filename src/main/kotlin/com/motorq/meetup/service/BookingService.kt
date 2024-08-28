@@ -41,7 +41,7 @@ class BookingService(
     private val userRepository: UserRepository,
     private val bookingRepository: BookingRepository,
     private val waitlistingRepository: WaitListingRepository,
-    @Value("job-scheduler.time-to-wait") private val timeToWait: Long
+    @Value("\${job-scheduler.time-to-wait}") private val timeToWait: String
 ) {
     fun bookSlot(bookingRequest: BookingRequest): Either<CustomError, Booking> = either {
         val conference = conferenceRepository.getConferenceByName(bookingRequest.conferenceName).bind()
@@ -173,22 +173,26 @@ class BookingService(
         val waitListRecord = waitlistingRepository.getTheOldestWaitListingRecordForConference(conferenceName).bind()
         waitListRecord.map {
             scheduleBackgroundJobToCheckAcceptance(it).bind()
-            waitlistingRepository.setWaitListEndTime(it.bookingId, Instant.now().plusSeconds(timeToWait)).bind()
+            waitlistingRepository.setWaitListEndTime(it.bookingId, Instant.now().plusSeconds(timeToWait.toLong())).bind()
         }.getOrElse { conferenceRepository.incrementConferenceAvailableSlot(conferenceName).bind() }
     }
 
     private fun scheduleBackgroundJobToCheckAcceptance(it: WaitListRecord) =
         wrapWithTryCatch({
             BackgroundJob.schedule(
-                Instant.now().plusSeconds(timeToWait)
+                Instant.now().plusSeconds(timeToWait.toLong())
             ) { checkForAcceptanceOfWaitList(it.bookingId, it.conferenceName) }
         }, logger)
 
     fun checkForAcceptanceOfWaitList(bookingId: UUID, conferenceName: String) = either {
+        logger.info("Running the scheduled Job with $bookingId and $conferenceName")
         val booking = bookingRepository.getBookingsById(bookingId).bind()
         if(booking.status != BookingStatus.CONFIRMED) {
             waitlistingRepository.resetWaitListRecord(bookingId).bind()
             notifyNextWaitListedUser(conferenceName).bind()
+        }
+        else {
+            logger.info("User has accepted the request. Closing the scheduled job successfully.")
         }
     }.onLeft { throw RuntimeException("Operation failed") }
 
