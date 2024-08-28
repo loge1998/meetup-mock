@@ -8,7 +8,7 @@ data class Conference(
     val topics: String,
     val startDatetime: Instant,
     val endDateTime: Instant,
-    val availableSlots: Int
+    val availableSlots: Int,
 ) {
     fun isOverlappingConference(conference: Conference): Boolean {
         return this.startDatetime.isBefore(conference.endDateTime) && conference.startDatetime.isBefore(this.endDateTime)

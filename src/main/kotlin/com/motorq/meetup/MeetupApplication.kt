@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class MeetupApplication
 
 fun main(args: Array<String>) {
-	runApplication<MeetupApplication>(*args)
+    runApplication<MeetupApplication>(*args)
 }

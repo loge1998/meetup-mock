@@ -8,5 +8,5 @@ data class BookingStatusResponse(
     val bookingId: UUID,
     val bookingStatus: BookingStatus,
     val isSlotAvailable: Boolean?,
-    val confirmationEndTime: Instant?
+    val confirmationEndTime: Instant?,
 )

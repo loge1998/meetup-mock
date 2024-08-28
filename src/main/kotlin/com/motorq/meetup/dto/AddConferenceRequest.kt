@@ -9,7 +9,7 @@ data class AddConferenceRequest(
     val topics: String,
     val startDatetime: Instant,
     val endDateTime: Instant,
-    val availableSlots: Int
+    val availableSlots: Int,
 ) {
     fun toConference(): Conference = Conference(name, location, topics, startDatetime, endDateTime, availableSlots)
 }

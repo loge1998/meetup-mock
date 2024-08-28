@@ -1,7 +1,7 @@
 package com.motorq.meetup.domain
 
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 data class WaitListRecord(
     var bookingId: UUID,
@@ -9,5 +9,5 @@ data class WaitListRecord(
     val conferenceName: String,
     val timestamp: Instant,
     val isRequestSent: Boolean,
-    val slotAvailabilityEndTime: Instant?
+    val slotAvailabilityEndTime: Instant?,
 )

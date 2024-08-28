@@ -97,9 +97,12 @@ class ConferenceRepository {
         val endDateTime = conference[ConferenceTable.endDateTime]
 
         ConferenceTable.select(ConferenceTable.name)
-            .where {ConferenceTable.startDateTime.between(startDateTime, endDateTime)}
+            .where { ConferenceTable.startDateTime.between(startDateTime, endDateTime) }
             .orWhere { ConferenceTable.endDateTime.between(startDateTime, endDateTime) }
-            .orWhere { ConferenceTable.startDateTime.lessEq(startDateTime).and(ConferenceTable.endDateTime.greaterEq(endDateTime)) }
+            .orWhere {
+                ConferenceTable.startDateTime.lessEq(startDateTime)
+                    .and(ConferenceTable.endDateTime.greaterEq(endDateTime))
+            }
             .map { it[ConferenceTable.name] }
     }, logger)
 

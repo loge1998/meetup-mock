@@ -4,11 +4,11 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.raise.either
 import arrow.core.toOption
-import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.CustomError
-import com.motorq.meetup.domain.User
 import com.motorq.meetup.UserAlreadyExistError
 import com.motorq.meetup.UserNotFoundError
+import com.motorq.meetup.domain.User
+import com.motorq.meetup.dto.AddUserRequest
 import com.motorq.meetup.entity.UserTable
 import com.motorq.meetup.wrapWithTryCatch
 import org.jetbrains.exposed.sql.ResultRow
@@ -24,7 +24,7 @@ class UserRepository {
 
     fun addUser(userRequest: AddUserRequest): Either<CustomError, User> = either {
         val existingUser = getUserByUserId(userRequest.userId)
-        if(existingUser.isRight())
+        if (existingUser.isRight())
             raise(UserAlreadyExistError)
         insertNewUser(userRequest).bind()
     }

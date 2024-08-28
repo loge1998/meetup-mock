@@ -4,19 +4,16 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.toOption
 import com.motorq.meetup.BookingNotFoundError
+import com.motorq.meetup.CustomError
 import com.motorq.meetup.domain.Booking
 import com.motorq.meetup.domain.BookingStatus
 import com.motorq.meetup.domain.Conference
-import com.motorq.meetup.CustomError
 import com.motorq.meetup.domain.User
 import com.motorq.meetup.entity.BookingsTable
 import com.motorq.meetup.wrapWithTryCatch
 import java.time.Instant
 import java.util.*
 import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteAll
-import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
@@ -58,16 +55,16 @@ class BookingRepository {
 
     fun getBookingsById(bookingId: UUID) = wrapWithTryCatch({
         BookingsTable.selectAll()
-            .where{BookingsTable.id eq bookingId}
+            .where { BookingsTable.id eq bookingId }
             .firstOrNull()
             .toOption()
             .map { it.toBooking() }
     }, logger).flatMap { it.toEither { BookingNotFoundError } }
 
     fun updateStatus(bookingId: UUID, bookingStatus: BookingStatus) = wrapWithTryCatch({
-       BookingsTable.update ({BookingsTable.id eq bookingId}) {
-           it[status] = bookingStatus
-       }
+        BookingsTable.update({ BookingsTable.id eq bookingId }) {
+            it[status] = bookingStatus
+        }
     }, logger)
 
     companion object {
